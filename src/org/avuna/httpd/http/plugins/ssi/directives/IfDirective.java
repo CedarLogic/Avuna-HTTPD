@@ -1,19 +1,21 @@
 /* Avuna HTTPD - General Server Applications Copyright (C) 2015 Maxwell Bruce This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>. */
 package org.avuna.httpd.http.plugins.ssi.directives;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.avuna.httpd.http.plugins.ssi.Page;
 import org.avuna.httpd.http.plugins.ssi.ParsedSSIDirective;
-import org.avuna.httpd.http.plugins.ssi.PluginSSI;
 import org.avuna.httpd.http.plugins.ssi.SSIDirective;
+import org.avuna.httpd.http.plugins.ssi.SSIEngine;
 import org.avuna.httpd.http.plugins.ssi.Word;
 
 public class IfDirective extends SSIDirective {
 	
-	public IfDirective(PluginSSI ssi) {
-		super(ssi);
+	public IfDirective(SSIEngine engine) {
+		super(engine);
 	}
 	
-	protected static boolean processSBNF(String pexpr, Page page, ParsedSSIDirective dir) {
+	protected boolean processSBNF(String pexpr, Page page, ParsedSSIDirective dir) {
 		String expr = pexpr.trim();
 		if (expr.equals("true")) return true;
 		if (expr.equals("false")) return false;
@@ -27,32 +29,8 @@ public class IfDirective extends SSIDirective {
 			expr = expr.substring(si + 1).trim();
 			Word w1 = new Word(expr, page, dir);
 			expr = pexpr.substring(w1.endIndex).trim();
-			if (op.equals("d")) {
-			
-			}else if (op.equals("e")) {
-			
-			}else if (op.equals("f")) {
-			
-			}else if (op.equals("s")) {
-			
-			}else if (op.equals("L")) {
-			
-			}else if (op.equals("h")) {
-			
-			}else if (op.equals("F")) {
-			
-			}else if (op.equals("U")) {
-			
-			}else if (op.equals("A")) {
-			
-			}else if (op.equals("n")) {
-			
-			}else if (op.equals("z")) {
-			
-			}else if (op.equals("T")) {
-			
-			}else if (op.equals("R")) {
-			
+			if (op.length() > 0) {
+				return engine.callUnaryOP(op.charAt(0), page, dir, w1.value);
 			}
 		}else {
 			Word w1 = new Word(expr, page, dir);
@@ -98,17 +76,20 @@ public class IfDirective extends SSIDirective {
 				String op = expr.substring(0, 2);
 				expr = expr.substring(2).trim();
 				Word w2 = new Word(expr, page, dir);
+				Pattern p = Pattern.compile(w2.value);
+				Matcher m = p.matcher(w1.value);
+				page.lastMatch = m;
 				if (op.equals("=~")) {
-					return w1.value.matches(w2.value);
+					return m.matches();
 				}else if (op.equals("!~")) {
-					return !w1.value.matches(w2.value);
+					return !m.matches();
 				}
 			}
 		}
 		return false;
 	}
 	
-	protected static boolean processBNF(String pexpr, Page page, ParsedSSIDirective dir) {
+	protected boolean processBNF(String pexpr, Page page, ParsedSSIDirective dir) {
 		String expr = pexpr;
 		int scope = 0;
 		boolean inq = false;
@@ -166,10 +147,9 @@ public class IfDirective extends SSIDirective {
 		if (!dir.args[0].startsWith("expr=")) return null;
 		if (processBNF(dir.args[0].substring(5), page, dir)) {
 			// do nothing
-			page.lifc = true;
+			page.lifc.add(page.scope);
 		}else {
-			page.returnScope = page.scope;
-			page.lifc = false;
+			page.returnScopes.add(page.scope);
 		}
 		return "";
 	}

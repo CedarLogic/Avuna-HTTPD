@@ -15,11 +15,12 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Scanner;
-import java.util.concurrent.ConcurrentHashMap;
 import org.avuna.httpd.com.ComClient;
 import org.avuna.httpd.com.CommandContext;
 import org.avuna.httpd.com.CommandRegistry;
@@ -51,7 +52,7 @@ import org.avuna.httpd.util.logging.Logger;
 import org.avuna.httpd.util.unio.GNUTLS;
 
 public class AvunaHTTPD {
-	public static final String VERSION = "1.3.2";
+	public static final String VERSION = "1.3.5";
 	public static Config mainConfig, hostsConfig;
 	public static final FileManager fileManager = new FileManager();
 	public static final HashMap<String, String> extensionToMime = new HashMap<String, String>();
@@ -219,6 +220,7 @@ public class AvunaHTTPD {
 				File mime = fileManager.getBaseFile(up);
 				mime.getParentFile().mkdirs();
 				if (!mime.exists()) {
+					mime.createNewFile();
 					logger.log("Downloading " + up + "...");
 					int si = rand.nextInt(dlMirrors.length);
 					int ei = si == 0 ? (dlMirrors.length) : -1;
@@ -292,12 +294,13 @@ public class AvunaHTTPD {
 		}
 	}
 	
-	public static final ConcurrentHashMap<String, Host> hosts = new ConcurrentHashMap<String, Host>();
+	public static final Map<String, Host> hosts = Collections.synchronizedMap(new LinkedHashMap<String, Host>());
 	
 	public static final List<String> bannedIPs = Collections.synchronizedList(new ArrayList<String>());
 	
 	public static long lastbipc = 0L;
 	public static final boolean windows = System.getProperty("os.name").toLowerCase().contains("windows");
+	public static boolean legacy = false;
 	
 	/** This is the main method for running Avuna
 	 * <p>
@@ -412,12 +415,14 @@ public class AvunaHTTPD {
 					if (!map.containsNode("hosts")) map.insertNode("hosts", new File(dir, "hosts.cfg").toString(), "main hosts file");
 					if (!map.containsNode("logs")) map.insertNode("logs", new File(dir, "logs").toString(), "logs folder");
 					if (!map.containsNode("javac")) map.insertNode("javac", "javac", "command for javac for comp command.");
+					if (!map.containsNode("forceLegacy")) map.insertNode("forceLegacy", "false", "If true, will force use of no-jni mode. Useful for libc < 2.14");
 					if (!windows && !map.containsNode("uid")) map.insertNode("uid", unpack ? "6833" : "0", "uid to de-escalate to, must be ran as root");
 					if (!windows && !map.containsNode("gid")) map.insertNode("gid", unpack ? "6833" : "0", "gid to de-escalate to, must be ran as root");
 					if (!windows && !map.containsNode("safeMode")) map.insertNode("safeMode", "true", "if true, automatically enforces file permissions. generally reccomended to prevent critical misconfiguration.");
 				}
 			});
 			mainConfig.load();
+			legacy = mainConfig.getValue("forceLegacy").equals("true");
 			Logger.init(fileManager.getLogs());
 			logger = new Logger("");
 			unpack();

@@ -32,6 +32,10 @@ public class UNIOSocket extends Socket {
 	protected boolean stlsi = false;
 	protected boolean to = false;
 	
+	public boolean isSecure() {
+		return session > 0L;
+	}
+	
 	/** Performs a blocking flush, with a timeout, returns true if fully flushed, false if not. */
 	public boolean flush(long timeout) throws IOException {
 		if (closed) throw new SocketException("Socket Closed!");
@@ -161,7 +165,19 @@ public class UNIOSocket extends Socket {
 		}
 	}
 	
+	public InetAddress getLocalAddress() {
+		try {
+			return InetAddress.getByName(ip);
+		}catch (UnknownHostException e) {
+			return null;
+		}
+	}
+	
 	public int getPort() {
+		return -1;
+	}
+	
+	public int getLocalPort() {
 		return port;
 	}
 	
@@ -203,5 +219,9 @@ public class UNIOSocket extends Socket {
 	
 	public PacketReceiver getCallback() {
 		return callback;
+	}
+	
+	public String toString() {
+		return "UNIOSocket SOCKFD = " + sockfd;
 	}
 }

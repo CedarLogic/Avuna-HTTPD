@@ -3,22 +3,23 @@ package org.avuna.httpd.http.plugins.ssi.directives;
 
 import org.avuna.httpd.http.plugins.ssi.Page;
 import org.avuna.httpd.http.plugins.ssi.ParsedSSIDirective;
-import org.avuna.httpd.http.plugins.ssi.PluginSSI;
 import org.avuna.httpd.http.plugins.ssi.SSIDirective;
+import org.avuna.httpd.http.plugins.ssi.SSIEngine;
 
 public class ElseDirective extends SSIDirective {
 	
-	public ElseDirective(PluginSSI ssi) {
-		super(ssi);
+	public ElseDirective(SSIEngine engine) {
+		super(engine);
 	}
 	
 	@Override
 	public String call(Page page, ParsedSSIDirective dir) {
-		if (!page.lifc && page.returnScope >= 0) {
-			page.nonbrss = -1;
-			page.lifc = true;
+		if (!page.lifc.contains(page.scope - 1)) {
+			page.returnScopes.remove((Integer) (page.scope - 1));
+			page.lifc.add(page.scope - 1);
 		}else {
-			page.nonbrss = page.scope - 1;
+			if (!page.returnScopes.contains(page.scope - 1)) page.returnScopes.add((Integer) (page.scope - 1));
+			// do nothing
 		}
 		return "";
 	}

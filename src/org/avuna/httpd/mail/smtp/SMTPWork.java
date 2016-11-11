@@ -51,16 +51,17 @@ public class SMTPWork {
 	}
 	
 	public void flushPacket(byte[] buf) throws IOException {
-		readLine(new String(buf));
+		readLine(new String(buf, 0, buf.length - 2)); // remove ending crlf
 	}
 	
 	public void readLine(String rline) throws IOException {
-		String line = rline.trim();
+		String line = rline;
 		host.logger.log(hashCode() + ": " + line);
 		String cmd = "";
-		if (state != 101) {
+		if (state < 101) {
+			line = line.trim();
 			cmd = line.contains(" ") ? line.substring(0, line.indexOf(" ")) : line;
-			cmd = cmd.toLowerCase();
+			cmd = cmd.toLowerCase().trim();
 			line = line.substring(cmd.length()).trim();
 		}
 		boolean r = false;
